@@ -18,7 +18,7 @@ void Minimax::Start(game::Board board) {
     m_nodes[0].heuristic = this->Apply(m_nodes[0], 9, true);
     
     std::cerr << "choosen heuristic: " << m_nodes[0].heuristic << std::endl;
-    std::cerr << "expanded nodes: " << m_count << " * " << sizeof(Node) << " = " << m_count * sizeof(Node) << " bytes\n";
+    std::cerr << "expanded nodes: " << m_count << " * sizeof(" << sizeof(Node) << ") = " << m_count * sizeof(Node) << " bytes\n";
 }
 
 // call after the algorithm run the minimax
