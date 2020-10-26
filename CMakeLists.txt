@@ -3,7 +3,7 @@ project(minimax VERSION 0.1.0)
 
 set(CMAKE_CXX_STANDARD 17)
 
-add_executable(minimax main.cpp)
+add_executable(minimax main.cpp Minimax.cpp Board.cpp Minimax.hpp Board.hpp)
 
 target_compile_options(minimax PRIVATE
   $<$<COMPILE_LANGUAGE:CXX>:$<$<CXX_COMPILER_ID:Clang>:-Wall -Werror>>
