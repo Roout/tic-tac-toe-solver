@@ -9,7 +9,7 @@ using namespace game;
 int main(int, char**) {
     Minimax algo {'o'};
     game::Board board {};
-
+    
     auto IsFinished = [](game::Board board) {
         using State = game::Board::State;
         bool isFinished { false };
@@ -49,13 +49,11 @@ int main(int, char**) {
 
         // AI move
         auto start = std::chrono::high_resolution_clock::now();
-        algo.Start(board);
+        auto move = algo.Run(board);
         auto finish = std::chrono::high_resolution_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
         std::cout << "Took time to make decision: " << elapsed / 1'000.f << " s" << std::endl;
-
-        board = algo.GetBestMove();
-        
+        board.assign(move / 3, move % 3, 'o');       
         if(IsFinished(board)) {
             std::cout << board;
             break;

@@ -1,168 +1,86 @@
 #include "Minimax.hpp"
 
 #include <iostream>
-#include <cmath>
 #include <limits>
+
+using game::operator<<;
 
 Minimax::Minimax(char value) :
     m_symbol { value },
-    m_opponent { value == 'x'? 'o': 'x' },
-    m_nodes { CAPACITY }
+    m_opponent { value == 'x'? 'o': 'x' }
 {
 }
 
-void Minimax::Start(game::Board board) {
-    m_count = 1U; // root node is already there
-    m_nodes[0].state = board;
-    m_nodes[0].count = 0;
-    m_nodes[0].heuristic = this->Apply(m_nodes[0], 9, true);
-    
-    std::cerr << "choosen heuristic: " << m_nodes[0].heuristic << std::endl;
-    std::cerr << "expanded nodes: " << m_count << " * sizeof(" << sizeof(Node) << ") = " << m_count * sizeof(Node) << " bytes\n";
-}
-
-// call after the algorithm run the minimax
-game::Board Minimax::GetBestMove() const noexcept {
-    // find the same heuristic value in children as the root node has
-    for(size_t i = 0; i < m_nodes[0].count; i++) {
-        auto id { m_nodes[0].children[i] };
-        if(fabs(m_nodes[0].heuristic - m_nodes[id].heuristic) <= 0.001f) {
-            return m_nodes[id].state;
+size_t Minimax::Run(game::Board board) {
+    // Look through all possible moves
+    // and choose the one with best heuristic value.
+    auto bestHeuristic { -10000.f };
+    size_t bestMove { 0 };
+    for(size_t i = 0; i < game::Board::SIZE; i++) {
+        const auto row = i / 3;
+        const auto col = i % 3;
+        if (board.at(row, col) == '.') {
+            board.assign(row, col, m_symbol);
+            auto heuristic { this->Apply(board, 8, false) };
+            if (bestHeuristic < heuristic) {
+                bestHeuristic = heuristic;
+                bestMove = i;
+            }
+            board.clear(row, col);
         }
     }
-    std::cerr << "Fail to choose\n";
-    assert(m_nodes[m_nodes[0].children.front()].count > 0 && "No children generated");
-    return m_nodes[m_nodes[0].children.front()].state;
+    std::cerr << "choosen heuristic: " << bestHeuristic << std::endl;
+    return bestMove;
 }
 
-float Minimax::Apply(Node& target, int depth, bool isMaximizingPlayer) {
-    this->Expand(target, isMaximizingPlayer);
+float Minimax::Apply(game::Board target, int depth, bool isMaximizingPlayer) {
     if (!depth || this->IsTerminal(target)) {
-        auto heuristic = this->GetHeuristic(target, depth);
-        return heuristic;
+        return this->GetHeuristic(target, depth);
     }
     if (isMaximizingPlayer) {
-        float heuristic = -std::numeric_limits<float>::max();
-        for(size_t i = 0; i < target.count; i++) {
-            assert(target.count <= 9 && "Unexpected child number");
-            const auto id = target.children[i];
-            assert(id < CAPACITY && "Unexpected ID of the child");
-            m_nodes[id].heuristic = this->Apply(m_nodes[id], depth - 1, false);
-            heuristic = std::max(heuristic, m_nodes[id].heuristic);
+        auto heuristic = -10000.f;
+        for(size_t i = 0; i < game::Board::SIZE; i++) {
+            const auto row = i / 3;
+            const auto col = i % 3;
+            if(target.at(row, col) == '.') {
+                target.assign(row, col, m_symbol);
+                heuristic = std::max(heuristic, this->Apply(target, depth - 1, false));
+                target.clear(row, col);
+            }
         }
         return heuristic;
     }
     else {
-        float heuristic = std::numeric_limits<float>::max();
-        for(size_t i = 0; i < target.count; i++) {
-            assert(target.count <= 9 && "Unexpected child number");
-            const auto id = target.children[i];
-            assert(id < CAPACITY && "Unexpected ID of the child");
-            m_nodes[id].heuristic = this->Apply(m_nodes[id], depth - 1, true);
-            heuristic = std::min(heuristic, m_nodes[id].heuristic);
+        auto heuristic = 10000.f;
+        for(size_t i = 0; i < game::Board::SIZE; i++) {
+            const auto row = i / 3;
+            const auto col = i % 3;
+            if(target.at(row, col) == '.') {
+                target.assign(row, col, m_opponent);
+                heuristic = std::min(heuristic, this->Apply(target, depth - 1, true));
+                target.clear(row, col);
+            }
         }
         return heuristic;
     }
 }
 
-bool Minimax::IsTerminal(const Node & node) const noexcept {
+bool Minimax::IsTerminal(game::Board state) const noexcept {
     using State = game::Board::State;
-    return node.count == 0U || game::GetGameState(node.state) != State::ONGOING; // don't have any children
+    return game::GetGameState(state) != State::ONGOING; // don't have any children
 }
 
-float Minimax::GetHeuristic(const Node & node, int depth) const noexcept {
-    (void) depth; // ignore for now
-    auto & state = node.state;
-    int add { 0 }, substract { 0 };
-    /**
-     * depth: The earlier we reach the final => the better (not implemented)
-     * - winning state gives 25 points
-     * - losing state gives -25 points
-     * - otherwise number of two-in-sequence-x with empty slot 
-     *  minus number of two-in-sequence-o with empty slot 
-     */
-    auto eval = [symbol = m_symbol](int& add, int&sub, int x, int o) {
-        int scores[2] = { 0, 0 };
-        // by default we add scores for good X-combination
-        if(x == 3) scores[0] += 25;
-        else if(o == 3) scores[1] += 25; 
-        else if(x == 2 && !o) scores[0] += 2;
-        else if(x == 1 && !o) scores[0] += 1;
-        else if(o == 2 && !x) scores[1] += 2;
-        else if(o == 1 && !x) scores[1] += 1;
+float Minimax::GetHeuristic(game::Board state, int depth) const noexcept {
+    using State = game::Board::State;
 
-        if(symbol == 'o') {
-            std::swap(scores[0], scores[1]);
-        }
-        add += scores[0];
-        sub += scores[1];
-    };
-    // Points from the rows
-    for(size_t i = 0; i < game::Board::ROWS; i++) {
-        int x { 0 }, o { 0 };
-        for(size_t j = 0; j < game::Board::COLS; j++) {
-            const auto value = state.at(i,j);
-            x += value == 'x';
-            o += value == 'o';
-        }
-        eval(add, substract, x, o);
+    int score = 0;
+    auto result = game::GetGameState(state);
+    switch(result) {
+        case State::ONGOING: [[fallthrough]]
+        case State::DRAW: score = depth; break;
+        case State::WIN_X: score = m_symbol == 'x'? 20 + depth: -20 - depth; break;
+        case State::WIN_O: score = m_symbol == 'o'? 20 + depth: -20 - depth; break;
+        default: break;
     }
-    // Points from the cols
-    for(size_t col = 0; col < game::Board::COLS; col++) {
-        int x { 0 }, o { 0 };
-        for(size_t row = 0; row < game::Board::ROWS; row++) {
-            const auto value = state.at(row, col);
-            x += value == 'x';
-            o += value == 'o';
-        }
-        eval(add, substract, x, o);
-    }
-    // Points from the main diagonal
-    int x { 0 }, o { 0 };
-    for(size_t i = 0; i < game::Board::ROWS; i++) {
-        const auto value = state.at(i, i);
-        x += value == 'x';
-        o += value == 'o';
-    }
-    eval(add, substract, x, o);
-    // Points from the other diagonal
-    x = 0;
-    o = 0;
-    for(size_t i = 0; i < game::Board::ROWS; i++) {
-        const auto value = state.at(i, game::Board::ROWS - i - 1);
-        x += value == 'x';
-        o += value == 'o';
-    }
-    eval(add, substract, x, o);    
-
-    return add - substract + 0.f;
-}
-
-void Minimax::Expand(Node& target, bool isMaximizing) noexcept {
-    const char value = isMaximizing? m_symbol : m_opponent;
-    // trying to generate 9 or less children (all possible)
-    for(size_t i = 0U; i < target.children.size(); i++) {
-        const auto row = i / 3U;
-        const auto col = i % 3U;
-
-        assert(m_count <= CAPACITY && "Overflow");
-        
-        Node child{};
-        // copy parent state
-        child.state = target.state;
-        // if we can make a move
-        if(child.state.at(row, col) == '.') {
-            // make a move
-            child.state.assign(row, col, value);
-            // update id of children in the parent node
-            target.children[target.count] = m_count;
-            // update number of children the parent has
-            target.count++;
-            // copy child to node pool 
-            m_nodes[m_count] = child;
-            // and increment the number of used nodes 
-            m_count++;
-        } 
-        // otherwise ignore child
-    }
+    return static_cast<float>(score);
 }
