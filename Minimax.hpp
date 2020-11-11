@@ -3,6 +3,10 @@
 
 #include "Board.hpp"
 
+/**
+ * @note 
+ * The Minimax require to evaluate each node 
+ */
 class Minimax {
 public:
     using Heuristic_t = float;
