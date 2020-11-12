@@ -7,6 +7,9 @@
 using namespace game;
 
 int main(int, char**) {
+
+    TestBoard();
+
     Minimax algo {'o'};
     game::Board board {};
     

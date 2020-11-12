@@ -103,5 +103,21 @@ void TestBoard() {
         assert(board.at(xRows[i], xCols[i]) == '.' && "Failed to clear the board");
     }
 
+    // finished
+    for(size_t i = 0; i < game::Board::Details::SIZE; i++) {
+       board.clear(i / 3u, i % 3); 
+    }
+    for(size_t i = 0; i < game::Board::Details::SIZE; i+=2) {
+        board.assign(i/3u, i%3u, 'x');
+    }
+    for(size_t i = 1; i < game::Board::Details::SIZE; i+=2) {
+        board.assign(i/3u, i%3u, 'o');
+    }
+    assert(board.finished() && "Failed finished board check");
+    board.clear(1u,1u);
+    assert(!board.finished() && "Failed finished board check");
+    board.clear(1u,2u);
+    assert(!board.finished() && "Failed finished board check");
+
     std::cerr << "Complete test.\n";
 }
