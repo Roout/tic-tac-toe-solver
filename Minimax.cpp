@@ -152,8 +152,7 @@ bool Minimax::IsTerminal(game::Board state) const noexcept {
     int score = 0;
     auto result = game::GetGameState(state);
     switch(result) {
-        case State::ONGOING: [[fallthrough]]
-        case State::DRAW: score = depth; break;
+        case State::ONGOING: case State::DRAW: score = depth; break;
         case State::WIN_X: score = m_symbol == 'x'? 20 + depth: -20 - depth; break;
         case State::WIN_O: score = m_symbol == 'o'? 20 + depth: -20 - depth; break;
         default: break;
