@@ -8,12 +8,6 @@
 #include <vector>
 #include <cassert>
 
-struct policy {};
-// random uniform-distributed expansion
-struct default_policy : public policy {};
-// expand all children
-struct tree_policy : public policy {};
-
 /**
  * MCTS doesn't evaluate each node, only leaf 
  * Constrains: time & memory
@@ -21,7 +15,7 @@ struct tree_policy : public policy {};
 class MCTS final {
 public:
 
-    MCTS(uint64_t timeLimit);
+    MCTS(int64_t timeLimit, char mark);
 
     /**
      * Run MCTS algorithm for the given board state
@@ -36,17 +30,23 @@ public:
 
 private:
 
+    // TODO: remove parent from the node
+    // TODO: get rid of the fucking std::vector
     struct Node final {
         game::Board     m_state {};
         std::vector<Node*> m_children {}; 
         Node*           m_parent { nullptr };
         uint32_t        m_visits { 0u };
-        float           m_score { 0.f };
+        float           m_reward { 0.f };
         char            m_symbol {'#'};
     };
 
     class Pool final {
     public:
+
+        size_t Size() const noexcept {
+            return m_size;
+        }
 
         bool IsFull() const noexcept {
             return m_size >= CAPACITY;
@@ -66,24 +66,29 @@ private:
         size_t m_size { 0u };
     };
 
-    
-    Node* Expand(Node* node);
+    void Expand(Node* node);
+   
+    Node* Select(Node* node) const noexcept;
 
-    Node* Select(Node* parent) const noexcept;
+    float Simulate(Node* node);
 
-    Node* Simulate(Node* node);
-
-    void UpdateScores(Node* node);
+    void Backup(Node* node, float reward);
 
     bool IsTerminal(Node* node) const noexcept {
-        // TODO: simplify game state test for the terminal node using XOR and AND
-        return game::GetGameState(node->m_state) != game::Board::State::ONGOING;
+        return node->m_state.finished();
     }
+
+    bool IsLeaf(Node* node) const noexcept;
+
+    // upper confidence bound of the tree
+    float UCT(Node* node, Node* parent) const noexcept;
+
 private:
+    // Time constrain for the algorithm (in milliseconds)
+    const int64_t m_timeLimit { 1'000 }; 
+    const char m_mark { '#' };
 
     Pool m_pool;
-    // Time constrain for the algorithm (in milliseconds)
-    const uint64_t m_timeLimit { 1'000 }; 
     std::mt19937 m_engine{};
 };
 
