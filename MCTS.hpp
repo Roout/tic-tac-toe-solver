@@ -48,11 +48,15 @@ private:
             return m_size;
         }
 
+        void Reset() noexcept {
+            m_size = 0;
+        }
+
         bool IsFull() const noexcept {
             return m_size >= CAPACITY;
         }
 
-        Node* Aquire() noexcept {
+        Node* Acquire() noexcept {
             assert(m_size < CAPACITY && "Out of allocated nodes!");
             m_size++;
             return &m_nodes[m_size - 1];
@@ -74,8 +78,10 @@ private:
 
     void Backup(Node* node, float reward);
 
+    void BackupNegamax(Node* node, float reward);
+
     bool IsTerminal(Node* node) const noexcept {
-        return node->m_state.finished();
+        return (game::GetGameState(node->m_state) != game::Board::State::ONGOING);
     }
 
     bool IsLeaf(Node* node) const noexcept;
