@@ -2,6 +2,8 @@
 #define MINIMAX_HPP
 
 #include "Board.hpp"
+#include <cstdint>
+#include <functional>
 
 /**
  * @note 
@@ -14,9 +16,13 @@ public:
     static constexpr Heuristic_t INFINITY { 1000000.f };
 
     /**
-     * @param minimaxMark indicate which mark does algorithm use for itself ('x' by default)
+     * @param player identity of this(minimax algorighmt) player
+     * @param playerMapping maps player index to cell
      */
-    Minimax(char minimaxMark);
+    Minimax(
+        uint8_t player
+        , std::function<game::Board::Cell(uint8_t)> && playerMapping
+    );
 
     /**
      * Run minimax algorithm for the given board state
@@ -48,11 +54,13 @@ private:
 
     Heuristic_t GetHeuristic(game::Board node, int depth) const noexcept;
 
+    uint8_t GetNextPlayer(uint8_t player) const noexcept;
+
 private:
     // character which represent AI's mark
-    char m_symbol { 'x' };
-    // mark of the opponent
-    char m_opponent { 'o' };
+    uint8_t m_player { 1 };
+
+    std::function<game::Board::Cell(uint8_t)> m_playerMapping;
 
     // statistics:
     // number of expanded nodes
@@ -63,5 +71,8 @@ inline size_t Minimax::ExpandedNodesCount() const noexcept {
     return m_expanded;
 }
 
+inline uint8_t Minimax::GetNextPlayer(uint8_t player) const noexcept {
+    return ++player & 1;
+}
 
 #endif // MINIMAX_HPP
