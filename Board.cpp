@@ -3,70 +3,78 @@
 namespace game {
     std::ostream& operator<<(std::ostream& os, Board board) {
         for(size_t i = 0; i < Board::SIZE; i++) {
-            os << board.at(i / Board::ROWS, i % Board::COLS);
+            const auto cell = board.at(i / Board::ROWS, i % Board::COLS);
+            os << (cell == Board::Cell::X ? 'x' : 
+                (cell == Board::Cell::O? 'o' : '.'));
             os << (i % Board::COLS == Board::COLS - 1U? "\n" : " | ");
         }
         return os;
     }
 
-    Board::State GetGameState(Board board) noexcept {
+    std::pair<Board::State, Board::Cell> GetGameState(Board board) noexcept {
         int freeSpaceCounter { 0 };
+        int x { 0 }, o { 0 };
+
         // any column 
         for(size_t row = 0; row < Board::ROWS; row++) {
-            int x { 0 }, o { 0 };
+            x = o = 0;
             for(size_t col = 0; col < Board::COLS; col++) {
                 auto value { board.at(row, col) };
-                x += value == 'x';
-                o += value == 'o';
-                freeSpaceCounter += value == '.';
+                x += value == Board::Cell::X;
+                o += value == Board::Cell::O;
+                freeSpaceCounter += value == Board::Cell::FREE;
             }
-            if(x == 3) return Board::State::WIN_X;
-            else if(o == 3) return Board::State::WIN_O;
+            if(x == 3) return { Board::State::WIN, Board::Cell::X };
+            else if(o == 3) return { Board::State::WIN, Board::Cell::O };
         }
 
         // any row 
         for(size_t col = 0; col < Board::COLS; col++) {
-            int x { 0 }, o { 0 };
+            x = o = 0;
             for(size_t row = 0; row < Board::ROWS; row++) {
                 auto value { board.at(row, col) };
-                x += value == 'x';
-                o += value == 'o';
+                x += value == Board::Cell::X;
+                o += value == Board::Cell::O;
             }
-            if(x == 3) return Board::State::WIN_X;
-            else if(o == 3) return Board::State::WIN_O;
+            if(x == 3) return { Board::State::WIN, Board::Cell::X };
+            else if(o == 3) return { Board::State::WIN, Board::Cell::O };
         }
 
         // main diag 
-        int x { 0 }, o { 0 };
+        x = o = 0;
         for(size_t i = 0; i < game::Board::ROWS; i++) {
             const auto value = board.at(i, i);
-            x += value == 'x';
-            o += value == 'o';
+            x += value == Board::Cell::X;
+            o += value == Board::Cell::O;
         }
-        if(x == 3) return Board::State::WIN_X;
-        else if(o == 3) return Board::State::WIN_O;
+        if(x == 3) return { Board::State::WIN, Board::Cell::X };
+        else if(o == 3) return { Board::State::WIN, Board::Cell::O };
 
         // Points from the other diagonal
         x = o = 0;
         for(size_t i = 0; i < game::Board::ROWS; i++) {
             const auto value = board.at(i, game::Board::ROWS - i - 1);
-            x += value == 'x';
-            o += value == 'o';
+            x += value == Board::Cell::X;
+            o += value == Board::Cell::O;
         }
-        if(x == 3) return Board::State::WIN_X;
-        else if(o == 3) return Board::State::WIN_O;
+        if(x == 3) return { Board::State::WIN, Board::Cell::X };
+        else if(o == 3) return { Board::State::WIN, Board::Cell::O };
 
-        return (freeSpaceCounter? Board::State::ONGOING : Board::State::DRAW);
+        return (freeSpaceCounter? 
+            std::make_pair(Board::State::ONGOING, Board::Cell::X) :  // second part of pair doesn't matter
+            std::make_pair(Board::State::DRAW, Board::Cell::X) // second part of pair doesn't matter
+        );
     }
 }
 
 void TestBoard() {
+    using game::Board;
     std::cerr << "Test the board...\n";
-    game::Board board;
+    Board board;
     // is clear
-    for(size_t i = 0; i < game::Board::ROWS; i++) {
-        for(size_t j = 0; j < game::Board::COLS; j++) {
-            assert(board.at(i, j) == '.' && "Unexpected default symbol at the board");
+    for(size_t i = 0; i < Board::ROWS; i++) {
+        for(size_t j = 0; j < Board::COLS; j++) {
+            assert(board.at(i, j) == Board::Cell::FREE && "Unexpected default symbol at the board");
         }
     }
 
@@ -78,16 +86,16 @@ void TestBoard() {
     size_t oCols[] = { 1, 0, 2};
 
     for(size_t i = 0; i < 3; i++) {
-        board.assign(xRows[i], xCols[i], 'x');
-        board.assign(oRows[i], oCols[i], 'o');
+        board.assign(xRows[i], xCols[i], Board::Cell::X);
+        board.assign(oRows[i], oCols[i], Board::Cell::O);
     }
 
     size_t xCount { 0 };
     size_t oCount { 0 };
-    for(size_t i = 0; i < game::Board::ROWS; i++) {
-        for(size_t j = 0; j < game::Board::COLS; j++) {
-            if(board.at(i, j) == 'x') xCount++; 
-            if(board.at(i, j) == 'o') oCount++; 
+    for(size_t i = 0; i < Board::ROWS; i++) {
+        for(size_t j = 0; j < Board::COLS; j++) {
+            if(board.at(i, j) == Board::Cell::X) xCount++; 
+            if(board.at(i, j) == Board::Cell::O) oCount++; 
         }
     }
     assert(xCount == 3 && oCount == 3 && "Wrong number of known tockens");
@@ -97,18 +105,18 @@ void TestBoard() {
         board.clear(xRows[i], xCols[i]);
     }
     for(size_t i = 0; i < 3; i++) {
-        assert(board.at(xRows[i], xCols[i]) == '.' && "Failed to clear the board");
+        assert(board.at(xRows[i], xCols[i]) == Board::Cell::FREE && "Failed to clear the board");
     }
 
     // finished
-    for(size_t i = 0; i < game::Board::Details::SIZE; i++) {
+    for(size_t i = 0; i < Board::Details::SIZE; i++) {
        board.clear(i / 3u, i % 3); 
     }
-    for(size_t i = 0; i < game::Board::Details::SIZE; i+=2) {
-        board.assign(i/3u, i%3u, 'x');
+    for(size_t i = 0; i < Board::Details::SIZE; i+=2) {
+        board.assign(i/3u, i%3u, Board::Cell::X);
     }
-    for(size_t i = 1; i < game::Board::Details::SIZE; i+=2) {
-        board.assign(i/3u, i%3u, 'o');
+    for(size_t i = 1; i < Board::Details::SIZE; i+=2) {
+        board.assign(i/3u, i%3u, Board::Cell::O);
     }
     assert(board.finished() && "Failed finished board check");
     board.clear(1u,1u);

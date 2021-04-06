@@ -4,6 +4,7 @@
 #include <cassert>
 #include <cstdint>
 #include <cstddef>
+#include <utility>
 #include <iostream>
 
 // Contain game logic implementation
@@ -12,29 +13,23 @@ namespace game {
     class Board {
     public:
         enum Details: size_t { ROWS = 3, COLS = 3, SIZE = 9 };
-        enum class State: uint8_t { 
-            WIN_X, // win player 0
-            WIN_O, // win player 1
-            ONGOING, 
-            DRAW 
-        };
+        enum class Cell: uint8_t { X = 0, O = 1, FREE = 2 };
+        enum class State: uint8_t { WIN, ONGOING, DRAW };
         // TODO: add enums to mark a player: 'o', 'x'
 
-        constexpr char at(size_t row, size_t col) const noexcept {
+        constexpr Cell at(size_t row, size_t col) const noexcept {
             const auto bitIndex = row * Details::ROWS + col;
-            return  (m_desk & (1U << bitIndex)) > 0U? 'x' : 
-                    (m_desk & (1U << (bitIndex + Details::SIZE))) > 0U? 'o' : '.';
+            return  (m_desk & (1U << bitIndex)) > 0U? Cell::X: 
+                    (m_desk & (1U << (bitIndex + Details::SIZE))) > 0U? Cell::O : Cell::FREE;
         }
 
         // TODO: add constexpr assignment and clear methods which will return the new board 
         // without modifying this one
 
-        void assign(size_t row, size_t col, char value) noexcept {
-            assert((value == 'x' || value == 'o') && "Trying to assign unknown tocken");
-
+        void assign(size_t row, size_t col, Cell value) noexcept {
             const auto bitIndex = row * Details::ROWS + col;
-            m_desk |= value == 'x'? (1U << bitIndex) : 
-                      value == 'o'? (1U << (bitIndex + Details::SIZE)): 0U;
+            m_desk |= value == Cell::X? (1U << bitIndex) : 
+                      value == Cell::O? (1U << (bitIndex + Details::SIZE)): 0U;
         }
 
         void clear(size_t row, size_t col) noexcept {
@@ -83,7 +78,7 @@ namespace game {
 
     std::ostream& operator<<(std::ostream& os, Board board);
     
-    Board::State GetGameState(Board board) noexcept;
+    std::pair<Board::State, Board::Cell> GetGameState(Board board) noexcept;
 }
 
 void TestBoard();
