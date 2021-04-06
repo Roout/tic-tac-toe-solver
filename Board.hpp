@@ -97,7 +97,6 @@ namespace game {
             if(x == 3) return Board::State::WIN_X;
             else if(o == 3) return Board::State::WIN_O;
         }
-        if(!freeSpaceCounter) return Board::State::DRAW;
 
         // any row 
         for(size_t col = 0; col < Board::COLS; col++) {
@@ -131,7 +130,7 @@ namespace game {
         if(x == 3) return Board::State::WIN_X;
         else if(o == 3) return Board::State::WIN_O;
 
-        return Board::State::ONGOING;
+        return (freeSpaceCounter? Board::State::ONGOING : Board::State::DRAW);
     }
 
 }
