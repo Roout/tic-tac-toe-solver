@@ -1,7 +1,64 @@
 #include "Board.hpp"
 
-#include <iostream>
+namespace game {
+    std::ostream& operator<<(std::ostream& os, Board board) {
+        for(size_t i = 0; i < Board::SIZE; i++) {
+            os << board.at(i / Board::ROWS, i % Board::COLS);
+            os << (i % Board::COLS == Board::COLS - 1U? "\n" : " | ");
+        }
+        return os;
+    }
 
+    Board::State GetGameState(Board board) noexcept {
+        int freeSpaceCounter { 0 };
+        // any column 
+        for(size_t row = 0; row < Board::ROWS; row++) {
+            int x { 0 }, o { 0 };
+            for(size_t col = 0; col < Board::COLS; col++) {
+                auto value { board.at(row, col) };
+                x += value == 'x';
+                o += value == 'o';
+                freeSpaceCounter += value == '.';
+            }
+            if(x == 3) return Board::State::WIN_X;
+            else if(o == 3) return Board::State::WIN_O;
+        }
+
+        // any row 
+        for(size_t col = 0; col < Board::COLS; col++) {
+            int x { 0 }, o { 0 };
+            for(size_t row = 0; row < Board::ROWS; row++) {
+                auto value { board.at(row, col) };
+                x += value == 'x';
+                o += value == 'o';
+            }
+            if(x == 3) return Board::State::WIN_X;
+            else if(o == 3) return Board::State::WIN_O;
+        }
+
+        // main diag 
+        int x { 0 }, o { 0 };
+        for(size_t i = 0; i < game::Board::ROWS; i++) {
+            const auto value = board.at(i, i);
+            x += value == 'x';
+            o += value == 'o';
+        }
+        if(x == 3) return Board::State::WIN_X;
+        else if(o == 3) return Board::State::WIN_O;
+
+        // Points from the other diagonal
+        x = o = 0;
+        for(size_t i = 0; i < game::Board::ROWS; i++) {
+            const auto value = board.at(i, game::Board::ROWS - i - 1);
+            x += value == 'x';
+            o += value == 'o';
+        }
+        if(x == 3) return Board::State::WIN_X;
+        else if(o == 3) return Board::State::WIN_O;
+
+        return (freeSpaceCounter? Board::State::ONGOING : Board::State::DRAW);
+    }
+}
 
 void TestBoard() {
     std::cerr << "Test the board...\n";

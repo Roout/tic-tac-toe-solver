@@ -2,16 +2,22 @@
 #define BOARD_HPP
 
 #include <cassert>
-// TODO: remove ostream from the header
-#include <ostream>
+#include <cstdint>
+#include <cstddef>
+#include <iostream>
 
 // Contain game logic implementation
 namespace game {
 
     class Board {
     public:
-        enum Details: size_t { ROWS = 3, COLS = 3, SIZE = 9};
-        enum class State: size_t { WIN_X, WIN_O, ONGOING, DRAW };
+        enum Details: size_t { ROWS = 3, COLS = 3, SIZE = 9 };
+        enum class State: uint8_t { 
+            WIN_X, // win player 0
+            WIN_O, // win player 1
+            ONGOING, 
+            DRAW 
+        };
         // TODO: add enums to mark a player: 'o', 'x'
 
         constexpr char at(size_t row, size_t col) const noexcept {
@@ -69,70 +75,15 @@ namespace game {
     private:
         // `size_t` is at least 32bit value, so let assign it's bits a specific value:
         // from lsb
-        // [0...8]   - indicates whether the cell at i-th place is 'x' or not
-        // [9...17]  - indicates whether the cell at i-th place is 'o' or not
-        // [18...32 (64)] - unspecified
+        // [0 ... 8]   - indicates whether the cell at i-th place is 'x' or not
+        // [9 ... 17]  - indicates whether the cell at i-th place is 'o' or not
+        // [18 ... 32 (64)] - unspecified
         size_t m_desk { 0U };
     };
 
-    inline std::ostream& operator<<(std::ostream& os, Board board) {
-        for(size_t i = 0; i < Board::SIZE; i++) {
-            os << board.at(i / Board::ROWS, i % Board::COLS);
-            os << (i % Board::COLS == Board::COLS - 1U? "\n" : " | ");
-        }
-        return os;
-    }
+    std::ostream& operator<<(std::ostream& os, Board board);
     
-    inline Board::State GetGameState(Board board) noexcept {
-        int freeSpaceCounter { 0 };
-        // any column 
-        for(size_t row = 0; row < Board::ROWS; row++) {
-            int x { 0 }, o { 0 };
-            for(size_t col = 0; col < Board::COLS; col++) {
-                auto value { board.at(row, col) };
-                x += value == 'x';
-                o += value == 'o';
-                freeSpaceCounter += value == '.';
-            }
-            if(x == 3) return Board::State::WIN_X;
-            else if(o == 3) return Board::State::WIN_O;
-        }
-
-        // any row 
-        for(size_t col = 0; col < Board::COLS; col++) {
-            int x { 0 }, o { 0 };
-            for(size_t row = 0; row < Board::ROWS; row++) {
-                auto value { board.at(row, col) };
-                x += value == 'x';
-                o += value == 'o';
-            }
-            if(x == 3) return Board::State::WIN_X;
-            else if(o == 3) return Board::State::WIN_O;
-        }
-
-        // main diag 
-        int x { 0 }, o { 0 };
-        for(size_t i = 0; i < game::Board::ROWS; i++) {
-            const auto value = board.at(i, i);
-            x += value == 'x';
-            o += value == 'o';
-        }
-        if(x == 3) return Board::State::WIN_X;
-        else if(o == 3) return Board::State::WIN_O;
-
-        // Points from the other diagonal
-        x = o = 0;
-        for(size_t i = 0; i < game::Board::ROWS; i++) {
-            const auto value = board.at(i, game::Board::ROWS - i - 1);
-            x += value == 'x';
-            o += value == 'o';
-        }
-        if(x == 3) return Board::State::WIN_X;
-        else if(o == 3) return Board::State::WIN_O;
-
-        return (freeSpaceCounter? Board::State::ONGOING : Board::State::DRAW);
-    }
-
+    Board::State GetGameState(Board board) noexcept;
 }
 
 void TestBoard();
