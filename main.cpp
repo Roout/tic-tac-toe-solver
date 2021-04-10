@@ -30,7 +30,7 @@ bool IsFinished(Board board) {
 int main(int, char**) {
     TestBoard();
     
-    uint64_t microsecs = 16'666'666;
+    uint64_t microsecs = 16'666;
     uint64_t iterations = 5000;
     uint64_t nodes = 10000;
     uint8_t player = 1;
@@ -59,13 +59,8 @@ int main(int, char**) {
         if(IsFinished(board)) break;
 
         // AI move
-        auto start = std::chrono::high_resolution_clock::now();
-        auto move = algos[kMCTS]->Run(board);
-        auto finish = std::chrono::high_resolution_clock::now();
-        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
-        std::cout << "Took time to make decision: " << elapsed / 1'000.f << " s" << std::endl;
-        
-        algos[kMCTS]->Print(std::cout);
+        auto move = algos[kAlphaBetta]->Run(board);
+        algos[kAlphaBetta]->Print(std::cout);
         board.assign(move / 3, move % 3, Board::Cell::O);       
         if(IsFinished(board)) {
             std::cout << board;

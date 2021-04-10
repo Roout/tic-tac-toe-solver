@@ -1,6 +1,7 @@
 #include "Minimax.hpp"
 #include <cassert>
 #include <algorithm>
+#include <chrono>
 
 namespace solution {
 
@@ -16,6 +17,7 @@ Minimax::Minimax(
 size_t Minimax::Run(State_t board) {
     using game::Board;
     m_expanded = 0u;
+    const auto start = std::chrono::system_clock::now();
     // Look through all possible moves
     // and choose the one with best heuristic value.
     auto bestHeuristic { -10000.f };
@@ -34,7 +36,9 @@ size_t Minimax::Run(State_t board) {
             board.clear(row, col);
         }
     }
-    std::cerr << "choosen heuristic: " << bestHeuristic << std::endl;
+    const auto end = std::chrono::system_clock::now();
+    const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    m_elapsed = static_cast<uint64_t>(elapsed);
     return bestMove;
 }
 
@@ -76,11 +80,13 @@ float Minimax::Apply(State_t target, int depth, bool isMaximizingPlayer) {
 
 void Minimax::Print(std::ostream& os) const {
     os << "Look through: " << m_expanded << " nodes\n";
+    os << "Elapsed time: " << m_elapsed / 1'000.f << " ms\n";
 }
 
 size_t AlphaBettaMinimax::Run(State_t board) {
     using game::Board;
 
+    const auto start = std::chrono::system_clock::now();
     m_expanded = 0u;
     // Look through all possible moves
     // and choose the one with best heuristic value.
@@ -100,7 +106,9 @@ size_t AlphaBettaMinimax::Run(State_t board) {
             board.clear(row, col);
         }
     }
-    std::cerr << "choosen heuristic: " << bestHeuristic << std::endl;
+    const auto end = std::chrono::system_clock::now();
+    const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+    m_elapsed = static_cast<uint64_t>(elapsed);
     return bestMove;
 }
 

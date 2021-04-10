@@ -46,6 +46,8 @@ protected:
 
     uint8_t     m_player{ 0 }; 
     Mapping_t   m_playerMapping{};
+    // Time spent by algorithm (in microseconds)
+    uint64_t    m_elapsed { 0 }; 
 };
 
 inline bool Solver::IsTerminal(State_t state) const noexcept {

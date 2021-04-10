@@ -143,9 +143,8 @@ void MCTS::BackupNegamax(Node* node, float reward) {
 
 size_t MCTS::Run(State_t board) {
     m_pool.Reset();
+    m_elapsed = 0ull;
 
-    const auto start = std::chrono::system_clock::now();
-    uint64_t elapsedTime { 0LL };
     uint64_t simulationLimit { 5000 };
     
     // initialize root node
@@ -157,9 +156,10 @@ size_t MCTS::Run(State_t board) {
 
     // Iterate an algorithm
     while(simulationLimit > 0 
-        && elapsedTime < m_timeLimit 
+        && m_elapsed < m_timeLimit 
         && m_treeSize < m_pool.Capacity()
     ) {
+        const auto start = std::chrono::system_clock::now();
         simulationLimit--;
         auto selected = this->Select(root);
         if(!this->IsTerminal(selected->m_state)) {
@@ -174,9 +174,9 @@ size_t MCTS::Run(State_t board) {
         const auto reward = this->Simulate(selected);
         this->BackupNegamax(selected, reward);
         // update timer
-        auto end = std::chrono::system_clock::now();
-        auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-        elapsedTime += static_cast<uint64_t>(elapsed);
+        const auto end = std::chrono::system_clock::now();
+        const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+        m_elapsed += static_cast<uint64_t>(elapsed);
     }
 
     std::cerr << "Visits: " << root->m_visits << "; Reward: " << root->m_reward << '\n';
@@ -207,6 +207,7 @@ size_t MCTS::Run(State_t board) {
 
 void MCTS::Print(std::ostream& os) const {
     os << "Allocated: " << m_pool.Size() << " nodes\n";
+    os << "Elapsed time: " << m_elapsed / 1'000.f << " ms\n";
 }
 
 
