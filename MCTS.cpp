@@ -6,20 +6,21 @@
 
 #include <iostream>
 
+namespace solution {
+
 MCTS::MCTS(uint64_t timeLimit
     , uint64_t iterations
     , uint64_t treeSize
     , uint8_t player
-    , std::function<game::Board::Cell(uint8_t)> && playerMapping
+    , Mapping_t && playerMapping
 )
-    : m_timeLimit { timeLimit }
+    : Solver { player, std::move(playerMapping) }
+    , m_timeLimit { timeLimit }
     , m_iterations { iterations }
     , m_treeSize { treeSize }
-    , m_player { player }
-    , m_playerMapping { std::move(playerMapping) }
     , m_engine{}
 {
-    assert(m_treeSize + game::Board::SIZE < m_pool.Capacity() 
+    assert(m_treeSize + State_t::SIZE < m_pool.Capacity() 
         && "Can't be greater or equal to memory pool capacity because expansion may fail to get Node");
     assert(m_player <= 1 
         && "Player ID must belong to range [0, 1");
@@ -35,8 +36,8 @@ float MCTS::UCT(const Node* node, const Node* parent) const noexcept {
 // recursively selected node using utility function
 // return selected base on utility function node (it can be 
 // either terminal either non-expanded) 
-MCTS::Node* MCTS::Select(Node* node) const noexcept {
-    while(!IsLeaf(node) && !IsTerminal(node)) {
+Node* MCTS::Select(Node* node) const noexcept {
+    while(!IsLeaf(node) && !IsTerminal(node->m_state)) {
         // avoid std::max_element because it performs too many useless calls to UCT
         Node *bestNode { nullptr };
         auto bestUCT = 0.f; 
@@ -60,19 +61,15 @@ MCTS::Node* MCTS::Select(Node* node) const noexcept {
     return node;
 }
 
-bool MCTS::IsTerminal(Node* node) const noexcept {
-    return (game::GetGameState(node->m_state).first != game::Board::State::ONGOING);
-}
-
 // expand selected node adding all possible children
 void MCTS::Expand(Node* node) {
-    for(size_t i = 0; i < game::Board::SIZE; i++) {
+    for(size_t i = 0; i < State_t::SIZE; i++) {
         auto row = i / 3;
         auto col = i % 3;
         // is empty so we can take action
-        if(node->m_state.at(row, col) == game::Board::Cell::FREE) {
+        if(node->m_state.at(row, col) == State_t::Cell::FREE) {
             auto child = m_pool.Acquire();
-            *child = MCTS::Node{};
+            *child = Node{};
             child->m_parent = node;
             child->m_player = this->GetNextPlayer(node->m_player);
             child->m_state = node->m_state;
@@ -124,7 +121,7 @@ float MCTS::Simulate(Node* expanded) {
     return reward;
 }
 
-void MCTS::Backup(MCTS::Node* node, float reward) {
+void MCTS::Backup(Node* node, float reward) {
     assert(node && "[ERROR] can't backup nullptr!");
     node->m_reward += reward;
     node->m_visits++;
@@ -144,28 +141,28 @@ void MCTS::BackupNegamax(Node* node, float reward) {
     }
 }
 
-size_t MCTS::Run(game::Board board) {
+size_t MCTS::Run(State_t board) {
     m_pool.Reset();
+    m_elapsed = 0ull;
 
-    const auto start = std::chrono::system_clock::now();
-    uint64_t elapsedTime { 0LL };
     uint64_t simulationLimit { 5000 };
     
     // initialize root node
     const auto root = m_pool.Acquire();
-    *root = MCTS::Node{};
+    *root = Node{};
     root->m_state = board;
     // init with opponent
     root->m_player = this->GetNextPlayer(m_player);
 
     // Iterate an algorithm
     while(simulationLimit > 0 
-        && elapsedTime < m_timeLimit 
+        && m_elapsed < m_timeLimit 
         && m_treeSize < m_pool.Capacity()
     ) {
+        const auto start = std::chrono::system_clock::now();
         simulationLimit--;
         auto selected = this->Select(root);
-        if(!this->IsTerminal(selected)) {
+        if(!this->IsTerminal(selected->m_state)) {
             assert(IsLeaf(selected) && "[ERROR] Unexpected node was selected!");
             this->Expand(selected);
             assert(!selected->m_children.empty() && "[ERROR] problems with expand function!");
@@ -177,9 +174,9 @@ size_t MCTS::Run(game::Board board) {
         const auto reward = this->Simulate(selected);
         this->BackupNegamax(selected, reward);
         // update timer
-        auto end = std::chrono::system_clock::now();
-        auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
-        elapsedTime += static_cast<uint64_t>(elapsed);
+        const auto end = std::chrono::system_clock::now();
+        const auto elapsed = std::chrono::duration_cast<std::chrono::microseconds>(end - start).count();
+        m_elapsed += static_cast<uint64_t>(elapsed);
     }
 
     std::cerr << "Visits: " << root->m_visits << "; Reward: " << root->m_reward << '\n';
@@ -197,7 +194,7 @@ size_t MCTS::Run(game::Board board) {
     auto state = (*max)->m_state;
 
     size_t bestMove = 0;
-    for(size_t i = 0; i < game::Board::SIZE; i++) {
+    for(size_t i = 0; i < State_t::SIZE; i++) {
         auto row = i / 3;
         auto col = i % 3;
         if(board.at(row, col) != state.at(row, col)) {
@@ -208,6 +205,10 @@ size_t MCTS::Run(game::Board board) {
     return bestMove;
 }
 
-size_t MCTS::ExpandedNodesCount() const noexcept {
-    return m_pool.Size();
+void MCTS::Print(std::ostream& os) const {
+    os << "Allocated: " << m_pool.Size() << " nodes\n";
+    os << "Elapsed time: " << m_elapsed / 1'000.f << " ms\n";
 }
+
+
+} // namespace solution

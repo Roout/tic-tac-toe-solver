@@ -1,28 +1,18 @@
-#ifndef MINIMAX_HPP
-#define MINIMAX_HPP
+#ifndef MINIMAX_HPP_
+#define MINIMAX_HPP_
 
-#include "Board.hpp"
-#include <cstdint>
-#include <functional>
+#include "Solver.hpp"
 
-/**
- * @note 
- * The Minimax require to evaluate each node 
- */
-class Minimax {
+namespace solution {
+
+class Minimax : public Solver {
 public:
-    using Heuristic_t = float;
-
-    static constexpr Heuristic_t INFINITY { 1000000.f };
 
     /**
-     * @param player identity of this(minimax algorighmt) player
-     * @param playerMapping maps player index to cell
+     * @param player identity (basicaly correspond to his turn in the game)
+     * @param mapping maps player index to cell
      */
-    Minimax(
-        uint8_t player
-        , std::function<game::Board::Cell(uint8_t)> && playerMapping
-    );
+    Minimax(uint8_t player, Mapping_t&& mapping);
 
     /**
      * Run minimax algorithm for the given board state
@@ -31,7 +21,30 @@ public:
      * - row = return_value / 3; 
      * - col = return_value % 3
      */
-    size_t Run(game::Board board);
+    size_t Run(State_t state) override;
+
+    void Print(std::ostream& os) const override;
+
+protected:
+
+    float GetHeuristic(State_t node, int depth) const noexcept;
+
+protected:
+    // statistics:
+    // number of opened nodes
+    size_t m_expanded { 0u };
+
+private:
+
+    float Apply(State_t, int depth, bool isMaximizingPlayer);
+
+};
+
+class AlphaBettaMinimax: public Minimax {
+public:
+    static constexpr float INF { 1000000.f };
+
+    using Minimax::Minimax;
 
     /**
      * Run minimax algorithm with alpha-beta pruning for the given board state
@@ -40,39 +53,17 @@ public:
      * - row = return_value / 3; 
      * - col = return_value % 3
      */
-    size_t RunAlphaBeta(game::Board board);
-
-    size_t ExpandedNodesCount() const noexcept;
+    size_t Run(State_t state) override;
 
 private:
-
-    Heuristic_t Apply(game::Board, int depth, bool isMaximizingPlayer);
-
-    Heuristic_t Apply(game::Board, int depth, Heuristic_t alpha, Heuristic_t beta, bool isMaximizingPlayer);
-
-    bool IsTerminal(game::Board node) const noexcept;
-
-    Heuristic_t GetHeuristic(game::Board node, int depth) const noexcept;
-
-    uint8_t GetNextPlayer(uint8_t player) const noexcept;
-
-private:
-    // character which represent AI's mark
-    uint8_t m_player { 1 };
-
-    std::function<game::Board::Cell(uint8_t)> m_playerMapping;
-
-    // statistics:
-    // number of expanded nodes
-    size_t m_expanded { 0u };
+    float Apply(State_t
+        , int depth
+        , float alpha
+        , float beta
+        , bool isMaximizingPlayer
+    );
 };
 
-inline size_t Minimax::ExpandedNodesCount() const noexcept {
-    return m_expanded;
-}
+} // namespace solution
 
-inline uint8_t Minimax::GetNextPlayer(uint8_t player) const noexcept {
-    return ++player & 1;
-}
-
-#endif // MINIMAX_HPP
+#endif // MINIMAX_HPP_
