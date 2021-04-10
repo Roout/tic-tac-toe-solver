@@ -4,7 +4,9 @@
 
 - [x] Minimax
 - [x] Minimax with alpha-beta pruning
-- [x] MCTS[1]
+- [x] MCTS<sup>[1]</sup>
+
+Note, MCTS uses backpropagation of a scalar reward with negamax<sup>[1]</sup> whereas the alternative approach will be to backpropagate a vector delta.
 
 ## References
 
