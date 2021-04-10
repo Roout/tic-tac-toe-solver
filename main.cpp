@@ -1,5 +1,6 @@
 #include <iostream>
 #include <chrono>
+#include <memory>
 
 #include "Board.hpp"
 #include "Minimax.hpp"
@@ -7,39 +8,43 @@
 
 using namespace game;
 
+bool IsFinished(Board board) {
+    using State = Board::State;
+    bool isFinished { false };
+    const auto result = GetGameState(board);
+    switch(result.first) {
+        case State::WIN: {
+            std::cout << (result.second == Board::Cell::X? "You win!\n": "You lose!\n");
+            isFinished = true;
+        } break;
+        case State::DRAW: {
+            std::cout << "Draw!\n";
+            isFinished = true;
+        } break;
+        case State::ONGOING: break;
+        default: break;
+    }
+    return isFinished;
+}
+
 int main(int, char**) {
     TestBoard();
-
-    auto IsFinished = [](Board board) {
-        using State = Board::State;
-        bool isFinished { false };
-        const auto result = GetGameState(board);
-        switch(result.first) {
-            case State::WIN: {
-                std::cout << (result.second == Board::Cell::X? "You win!\n": "You lose!\n");
-                isFinished = true;
-            } break;
-            case State::DRAW: {
-                std::cout << "Draw!\n";
-                isFinished = true;
-            } break;
-            case State::ONGOING: break;
-            default: break;
-        }
-        return isFinished;
-    };
     
-    // uint64_t microsecs = 16'666'666;
-    // uint64_t iterations = 5000;
-    // uint64_t nodes = 10000;
+    uint64_t microsecs = 16'666'666;
+    uint64_t iterations = 5000;
+    uint64_t nodes = 10000;
     uint8_t player = 1;
     auto playerMapping = [](uint8_t player) {
         return player == 0? Board::Cell::X : Board::Cell::O;
     };
 
-    // MCTS algo { microsecs, iterations, nodes, player, std::move(playerMapping) };
-    solution::AlphaBettaMinimax algo { player, std::move(playerMapping) };
-    // Minimax algo { player, std::move(playerMapping) };
+    enum Kind { kMCTS, kAlphaBetta, kMinimax };
+    using SolverPointer = std::unique_ptr<solution::Solver>;
+    SolverPointer algos[3] = {
+        SolverPointer { new solution::MCTS { microsecs, iterations, nodes, player, std::move(playerMapping) } }
+        , SolverPointer { new solution::AlphaBettaMinimax { player, std::move(playerMapping) } }
+        , SolverPointer { new solution::Minimax { player, std::move(playerMapping) } }
+    };
     Board board {};
     while(true) {
         std::cout << board;
@@ -55,11 +60,12 @@ int main(int, char**) {
 
         // AI move
         auto start = std::chrono::high_resolution_clock::now();
-        auto move = algo.Run(board);
+        auto move = algos[kMCTS]->Run(board);
         auto finish = std::chrono::high_resolution_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
         std::cout << "Took time to make decision: " << elapsed / 1'000.f << " s" << std::endl;
-        algo.Print(std::cout);
+        
+        algos[kMCTS]->Print(std::cout);
         board.assign(move / 3, move % 3, Board::Cell::O);       
         if(IsFinished(board)) {
             std::cout << board;
