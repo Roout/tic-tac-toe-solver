@@ -29,15 +29,16 @@ int main(int, char**) {
         return isFinished;
     };
     
-    uint64_t microsecs = 16'666'666;
-    uint64_t iterations = 5000;
-    uint64_t nodes = 10000;
+    // uint64_t microsecs = 16'666'666;
+    // uint64_t iterations = 5000;
+    // uint64_t nodes = 10000;
     uint8_t player = 1;
     auto playerMapping = [](uint8_t player) {
         return player == 0? Board::Cell::X : Board::Cell::O;
     };
 
-    MCTS algo { microsecs, iterations, nodes, player, std::move(playerMapping) };
+    // MCTS algo { microsecs, iterations, nodes, player, std::move(playerMapping) };
+    solution::AlphaBettaMinimax algo { player, std::move(playerMapping) };
     // Minimax algo { player, std::move(playerMapping) };
     Board board {};
     while(true) {
@@ -58,7 +59,7 @@ int main(int, char**) {
         auto finish = std::chrono::high_resolution_clock::now();
         auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(finish - start).count();
         std::cout << "Took time to make decision: " << elapsed / 1'000.f << " s" << std::endl;
-        std::cout << "Expand: " << algo.ExpandedNodesCount() << " nodes\n";
+        algo.Print(std::cout);
         board.assign(move / 3, move % 3, Board::Cell::O);       
         if(IsFinished(board)) {
             std::cout << board;
