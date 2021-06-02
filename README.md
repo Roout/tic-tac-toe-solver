@@ -1,4 +1,4 @@
-# This project solves the problem of the AI for the tic-tac-toe game
+# AI for the tic-tac-toe game
 
 **Used algorithms:**  
 
