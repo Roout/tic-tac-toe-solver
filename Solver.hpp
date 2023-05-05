@@ -23,7 +23,7 @@ public:
         , m_playerMapping { std::move(mapping) }
     {}
 
-    ~Solver() = default;
+    virtual ~Solver() = default;
 
     /**
      * Run minimax algorithm for the given board state
